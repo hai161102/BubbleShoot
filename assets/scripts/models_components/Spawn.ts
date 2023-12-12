@@ -124,6 +124,7 @@ export class Spawn extends Base {
         ball.setPosition(0, 0, 0);
         this.node.addChild(ball);
         this.currenBall = ball;
+        console.log(this.currenBall.position);
     }
 
     shot(angle: number) {

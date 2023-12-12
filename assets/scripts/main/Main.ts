@@ -1,4 +1,4 @@
-import { _decorator, Canvas, Component, CurveRange, game, Graphics, instantiate, Line, Node, Prefab, Quat, UITransform, v2, v3, Vec2, Vec3 } from 'cc';
+import { _decorator, Canvas, Component, CurveRange, EPhysics2DDrawFlags, game, Graphics, instantiate, Line, Node, PhysicsSystem2D, Prefab, Quat, UITransform, v2, v3, Vec2, Vec3 } from 'cc';
 import { Spawn } from '../models_components/Spawn';
 import { ListBallComopenent } from '../models_components/ListBallComopenent';
 import { BallComponent } from '../models_components/BallComponent';
@@ -9,7 +9,16 @@ const BULLET_SIZE = 32;
 
 @ccclass('Main')
 export class Main extends Base {
+
+    
     protected onloaded(): void {
+        PhysicsSystem2D.instance.debugDrawFlags = EPhysics2DDrawFlags.Aabb |
+            EPhysics2DDrawFlags.Pair |
+            EPhysics2DDrawFlags.CenterOfMass |
+            EPhysics2DDrawFlags.Joint |
+            EPhysics2DDrawFlags.Shape;
+
+        
         let sefl = this;
         // this.line.strokeColor.fromHEX('#ff0000');
         // this.line.lineWidth = 5;
@@ -42,6 +51,7 @@ export class Main extends Base {
                 sefl.clearLineBullets();
             },
         }
+        this.spawn.currenBall.getComponent(BallComponent).ball.color = this.listBall.listColorName[1];
     }
     protected ondestroyed(): void {
     }
@@ -49,23 +59,23 @@ export class Main extends Base {
     // @property(Graphics)
     // line : Graphics;
     @property(Spawn)
-    spawn : Spawn;
+    spawn: Spawn;
     @property(Node)
-    listBullet : Node;
+    listBullet: Node;
     @property(Prefab)
-    bulletPrefab : Prefab;
+    bulletPrefab: Prefab;
     @property(ListBallComopenent)
-    listBall : ListBallComopenent;
+    listBall: ListBallComopenent;
 
 
 
-    startPos : Vec2 = new Vec2();
+    startPos: Vec2 = new Vec2();
     start() {
 
     }
 
     update(deltaTime: number) {
-        this.spawn.currenBall&& this.listBall.isIntersecting(this.spawn.currenBall.getComponent(BallComponent).ball)
+        this.spawn.currenBall && this.listBall.isIntersecting(this.spawn.currenBall.getComponent(BallComponent).ball)
     }
 
     drawLineBullet(startPoint: Vec2, numberBullets: number) {
@@ -82,7 +92,7 @@ export class Main extends Base {
         }
     }
 
-    moveLineBullets(startPoint : Vec2, angle: number) {
+    moveLineBullets(startPoint: Vec2, angle: number) {
         this.listBullet.setRotation(Quat.fromAxisAngle(new Quat(), Vec3.UNIT_Z, (angle)));
     }
 

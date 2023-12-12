@@ -2,15 +2,15 @@ import { Color, Size, Vec2, Node, UITransform, Collider2D, physics, v2 } from "c
 
 export default class Ball {
     intersect(b: Ball) : boolean{
-        return this.getRect().intersectCircle(b.getRect()) && b.color === this.color;
+        return this.getRect().intersectCircle(b.getRect());
     }
     position : Vec2 = new Vec2();
     size : Size = new Size(48, 48);
     color: Color = Color.BLUE;
-    speed: number = 500;
+    speed: number = 1000;
     gravity: number = 10;
     score: number = 10;
-    indexInList: number = -1;
+    indexInList: number[] = [];
     private _node: Node;
     public get node(): Node {
         return this._node;
