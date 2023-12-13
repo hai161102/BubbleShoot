@@ -4,5 +4,22 @@
       "width": 1080,
       "height": 1920
     }
+  },
+  "physics": {
+    "collisionGroups": [
+      {
+        "index": 1,
+        "name": "SHOOT_BUBBLE"
+      },
+      {
+        "index": 2,
+        "name": "NONE_SHOOT_BUBBLE"
+      }
+    ],
+    "collisionMatrix": {
+      "0": 1,
+      "1": 4,
+      "2": 2
+    }
   }
 }
