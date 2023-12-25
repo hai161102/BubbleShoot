@@ -31,6 +31,7 @@ export class BallComponent extends Base {
     }
     protected onloaded(): void {
         this.ball = new Ball(this.node);
+        
         let collider = this.node.getComponent(Collider2D);
         if (collider) {
             collider.on(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
@@ -65,7 +66,6 @@ export class BallComponent extends Base {
         // }
     }
     start() {
-
     }
 
     onBeginContact (selfCollider: Collider2D, otherCollider: Collider2D, contact: IPhysics2DContact | null) {
@@ -99,8 +99,8 @@ export class BallComponent extends Base {
         let center = GameUtils.v2Fromv3(this.node.worldPosition);
         let radius = GameUtils.getRadius(this.node)
         this.scheduleOnce(() => {
-            this.node.removeFromParent();
             callback && callback(center, radius);
+            this.node.removeFromParent();
 
         }, 0.1);
     }

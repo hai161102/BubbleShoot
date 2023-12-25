@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, UITransform, v2, Vec2, Vec3 } from 'cc';
+import { _decorator, Component, Node, Size, UITransform, v2, Vec2, Vec3 } from 'cc';
 export default class GameUtils {
 
     static getCircleLineIntersectionPoints(pointA: Vec2, pointB: Vec2, center: Vec2, radius: number): Vec2[] {
@@ -73,16 +73,70 @@ export default class GameUtils {
     }
 
     static getPositionInTile(bubble: Node, raycastPoint: Vec2) : Vec2 {
-        let size = bubble.getComponent(UITransform).contentSize;
         let position = bubble.worldPosition.clone();
-        let newPos = new Vec2();
-        newPos.y = position.y - size.height * 0.75;
-        if (position.x >= raycastPoint.x) {
-            newPos.x = position.x - size.width / 2;
+        let listPosNear = this.getPosNear(this.v2Fromv3(position), this.getRadius(bubble));
+        listPosNear.sort((t1, t2) => {
+            return Vec2.distance(t1.position, raycastPoint) - Vec2.distance(t2.position, raycastPoint);
+        })
+        return listPosNear[0].position;
+    }
+    static getPositionRaycastBound(startPosition: Vec2, angle: number, boundWidth: Size) : {position: Vec2, angle: number} {
+        let startOx = v2(-boundWidth.width / 2, startPosition.y);
+        let endOx = v2(boundWidth.width / 2, startPosition.y);
+        let distance = 0;
+        let findPos = new Vec2();
+        let findAngle = angle;
+        if(angle < Math.PI / 2) {
+            distance = Vec2.distance(startPosition, endOx);
+            let lengthFinded = Math.tan(angle) * distance;
+            findPos.set(endOx.x, endOx.y + lengthFinded);
+            findAngle = angle + Math.PI / 2;
         }
         else {
-            newPos.x = position.x + size.width / 2;
+            distance = Vec2.distance(startPosition, startOx);
+            let lengthFinded = Math.tan(Math.PI - angle) * distance;
+            findPos.set(startOx.x, startOx.y + lengthFinded);
+            findAngle = angle - Math.PI / 2;
         }
-        return newPos;
+
+        return {position: findPos, angle: findAngle};
     }
+    static getPosNear(startPoint: Vec2, radius: number): {position: Vec2, dir: DIRECTION}[] {
+        let list : {position: Vec2, dir: DIRECTION}[] = [];
+        let angle = Math.PI / 3;
+        let startAngle = 0 + angle / 2;
+        for(let i = 0; i < 6; i++) {
+            let ang = startAngle + angle * i;
+            let vector = v2(0, radius * 2).rotate(ang);
+            // vector.x *= Math.sin(ang);
+            // vector.y *= Math.cos(ang);
+            list.push({
+                position: startPoint.clone().add(vector),
+                dir: this.getDirectByAngle(Math.fround(ang * 180 / Math.PI)),
+            });
+        }
+        return list;
+    }
+    static getDirectByAngle(angle: number) : DIRECTION{
+
+        switch(angle) {
+            case 30: return DIRECTION.LT;
+            case 90: return DIRECTION.L;
+            case 150: return DIRECTION.LB;
+            case 210: return DIRECTION.RB;
+            case 270: return DIRECTION.R;
+            case 330: return DIRECTION.RT;
+            default: return DIRECTION.NONE;
+        }
+
+    }
+}
+export enum DIRECTION {
+    LT,
+    L,
+    LB,
+    RT,
+    R,
+    RB,
+    NONE
 }

@@ -609,6 +609,10 @@
       "__uuid__": "d0faaa10-3d1a-4bdb-b8ab-3bdfd94d6516",
       "__expectedType__": "cc.Prefab"
     },
+    "scorePrefab": {
+      "__uuid__": "098cb867-8b2f-42cd-821e-5f5dbca866c6",
+      "__expectedType__": "cc.Prefab"
+    },
     "listBullet": {
       "__id__": 12
     },

@@ -1,8 +1,8 @@
 import { Color, Size, Vec2, Node, UITransform, Collider2D, physics, v2 } from "cc";
 
 export default class Ball {
-    intersect(b: Ball) : boolean{
-        return this.getRect().intersectCircle(b.getRect());
+    intersect(b: Ball, odd? : number) : boolean{
+        return this.getRect().intersectCircle(b.getRect(), odd);
     }
     position : Vec2 = new Vec2();
     size : Size = new Size(48, 48);
@@ -83,13 +83,13 @@ export class Rect {
         return false;
     }
 
-    intersectCircle(rect: Rect) : boolean {
+    intersectCircle(rect: Rect, odd? : number) : boolean {
 
         let radius1 = Math.abs(this.left - this.right) / 2;
         let radius2 = Math.abs(rect.left - rect.right) / 2;
 
         let distance = Vec2.distance(this.center(), rect.center());
-        return distance <= radius1 + radius2;
+        return (distance - distance * odd) <= radius1 + radius2;
     }
 
 
