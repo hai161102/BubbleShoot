@@ -1,4 +1,4 @@
-import { _decorator, Canvas, Color, EPhysics2DDrawFlags, EventTouch, game, instantiate, Node, PhysicsSystem2D, Prefab, Quat, SpriteFrame, tween, TweenSystem, UIOpacity, UITransform, v2, v3, Vec2, Vec3 } from 'cc';
+import { _decorator, Asset, Canvas, Color, EffectAsset, EPhysics2DDrawFlags, EventTouch, game, Graphics, instantiate, Material, Node, PhysicsSystem2D, Prefab, Quat, resources, Sprite, SpriteFrame, Texture2D, tween, TweenSystem, UIOpacity, UITransform, v2, v3, Vec2, Vec3 } from 'cc';
 import { Base } from '../base/Base';
 import { BallComponent } from '../models_components/BallComponent';
 import Ball from '../models/Ball';
@@ -33,6 +33,8 @@ export class PlayManager extends Base {
 
     @property(Node)
     testIntersectionNode: Node;
+    @property(Graphics)
+    line: Graphics;
 
     previewNode: Node;
 
@@ -43,10 +45,24 @@ export class PlayManager extends Base {
     private _maxCol: number = 0;
     private _maxRow: number = 6;
     private _poolBall: Node[][] = [];
+
+    private ballEffects: EffectAsset[] = [];
+
     protected onloaded(): void {
-        this._maxCol = this.canvas.node.getComponent(UITransform).contentSize.width / instantiate(this.bubblePrefab).getComponent(UITransform).width;
-        this.addShootBubble(this.startPointNode);
-        this.loadArray();
+        resources.loadDir('ball_effects', EffectAsset, (err: Error|null, data: EffectAsset[]) => {
+            console.log(err)
+            if (data) {
+                console.log(data);
+                data.forEach(d => {
+                    this.ballEffects.push(d);
+                })
+            }
+            console.log(this.ballEffects);
+            this._maxCol = (this.canvas.node.getComponent(UITransform).contentSize.width / instantiate(this.bubblePrefab).getComponent(UITransform).width) - 1;
+            this.addShootBubble(this.startPointNode);
+            this.loadArray();
+        });
+
     }
     loadArray() {
         this.node.removeAllChildren();
@@ -59,7 +75,8 @@ export class PlayManager extends Base {
                     if (this.bubblePrefab) {
                         let bubble = instantiate(this.bubblePrefab);
                         this.listBall.addChild(bubble);
-                        bubble.getComponent(BallComponent).sprite.spriteFrame = this.listFrameBubble[index];
+                        this.setBubbleSpriteFrame(bubble.getComponent(BallComponent).sprite, this.listFrameBubble[index])
+                        // bubble.getComponent(BallComponent).sprite.spriteFrame = this.listFrameBubble[index];
                         bubble.getComponent(BallComponent).ball.color = this.listColor[index];
                         if (j == 0 && i == 0) {
                             let size = bubble.getComponent(UITransform).contentSize.clone();
@@ -99,7 +116,7 @@ export class PlayManager extends Base {
         }
     }
     private touchstart(startPos: Vec2) {
-        this.drawLineBullet(startPos, 20);
+        // this.drawLineBullet(startPos, 20);
     }
 
     private touchmove(angle: number) {
@@ -107,7 +124,8 @@ export class PlayManager extends Base {
         // this.listBall.children.forEach(n => {
         //     n.getComponent(UIOpacity).opacity = 255;
         // })
-        this.moveLineBullets(v2(this.startPointNode.worldPosition.x, this.startPointNode.worldPosition.y), angle - Math.PI / 2);
+        // this.moveLineBullets(v2(this.startPointNode.worldPosition.x, this.startPointNode.worldPosition.y), angle - Math.PI / 2);
+
         let rayNode = this.findNearestRayCast(
             angle,
             GameUtils.v2Fromv3(this.startPointNode.children[0].worldPosition));
@@ -125,11 +143,13 @@ export class PlayManager extends Base {
             }
 
             this.previewNode.setWorldPosition(v3(addPos.x, addPos.y, 0));
+            this.drawLine(GameUtils.v2Fromv3(this.startPointNode.children[0].worldPosition), addPos)
         }
         // rayNode && (rayNode.node.getComponent(UIOpacity).opacity = 50);
     }
     private touchend(angle?: number) {
         this.clearLineBullets();
+        this.line.clear();
         if (this.previewNode) {
             this.node.removeChild(this.previewNode);
             this.previewNode = null;
@@ -143,13 +163,17 @@ export class PlayManager extends Base {
                 let newStartPos = GameUtils.getPositionRaycastBound(GameUtils.v2Fromv3(this.startPointNode.children[0].worldPosition),
                     angle, this.canvas.node.getComponent(UITransform).contentSize);
                 rayNode = this.findNearestRayCast(newStartPos.angle, newStartPos.position);
-                console.log("shoot",rayNode);
+                console.log("shoot", rayNode);
             }
             if (rayNode) {
                 console.log("shooting")
                 let addPos = GameUtils.getPositionInTile(rayNode.node, rayNode.point);
                 let self = this;
-                tween(this.startPointNode.children[0]).tag(1111).to(1, {
+                let ball = this.startPointNode.children[0].getComponent(BallComponent).ball;
+                let distance = Vec2.distance(addPos, GameUtils.v2Fromv3(this.startPointNode.children[0].worldPosition))
+                let duration = distance / ball.speed;
+                tween(this.startPointNode.children[0]).tag(1111).to(
+                    duration, {
                     worldPosition: v3(addPos.x, addPos.y, 0)
                 }, {
                     onUpdate(target, ratio) {
@@ -164,6 +188,31 @@ export class PlayManager extends Base {
         }
     }
 
+    private setBubbleSpriteFrame(sprite: Sprite, spriteFrame: SpriteFrame) {
+        sprite.spriteFrame = spriteFrame;
+        // this.applyFX2D(sprite, spriteFrame.texture as Texture2D, {});
+    }
+    applyFX2D(renderableComponent: Sprite, texture: Texture2D, config) {
+        const mat = new Material();
+        mat.initialize({
+            effectAsset: this.ballEffects[0],
+            defines: {
+                "USE_TEXTURE": true,
+                "USize":300,
+                "URadius": 0.8
+            }
+        });
+        // mat.setProperty('uSubTex', texture);
+        // mat.setProperty('mainTexture', texture);
+        for (const key in config) {
+            if (Object.prototype.hasOwnProperty.call(config, key)) {
+                const element = config[key];
+                mat.setProperty(key, element);
+            }
+        }
+        // renderableComponent.setMaterial(mat, 0);
+        renderableComponent.customMaterial = mat;
+    }
     findNearestRayCast(angle: number, startPosition: Vec2): { node: Node, point: Vec2 } {
         let listRayCastNode: { node: Node, listPoint: Vec2[] }[] = [];
         let nextVector = GameUtils.getVectorFromDistanceAndDirection(
@@ -195,7 +244,15 @@ export class PlayManager extends Base {
     }
 
 
-
+    private drawLine(startPoint: Vec2, endPoint: Vec2) {
+        this.line.clear();
+        this.line.lineWidth = 10;
+        this.line.strokeColor = Color.RED;
+        this.line.moveTo(startPoint.x, startPoint.y);
+        this.line.lineTo(endPoint.x, endPoint.y);
+        this.line.stroke();
+        this.line.fill();
+    }
 
 
     // addNewBubble(parent: Node, col: number, row: number) {
@@ -236,7 +293,8 @@ export class PlayManager extends Base {
             parent.removeAllChildren();
             let bubble = instantiate(this.bubblePrefab);
             parent.addChild(bubble);
-            bubble.getComponent(BallComponent).sprite.spriteFrame = this.listFrameBubble[getIndex];
+            this.setBubbleSpriteFrame(bubble.getComponent(BallComponent).sprite, this.listFrameBubble[getIndex])
+            // bubble.getComponent(BallComponent).sprite.spriteFrame = this.listFrameBubble[getIndex];
             bubble.getComponent(BallComponent).ball.color = this.listColor[getIndex];
             let poses = GameUtils.getPosNear(GameUtils.v2Fromv3(
                 bubble.worldPosition.clone()
@@ -274,15 +332,15 @@ export class PlayManager extends Base {
     }
 
     update(deltaTime: number) {
-        // if (this._shooting) {
-        //     this.startPointNode.getComponentInChildren(BallComponent).ball.speed *= this.pong(this.startPointNode.children[0]);
-        //     let distance = this.startPointNode.getComponentInChildren(BallComponent).ball.speed * game.deltaTime;
-        //     let x = distance * Math.cos(this._shootAngle);
-        //     let y = Math.abs(distance) * Math.sin(this._shootAngle);
-        //     this.startPointNode.children[0] && this.startPointNode.children[0].setWorldPosition(this.startPointNode.children[0].worldPosition.clone().add3f(x, y, 0));
+        if (this._shooting) {
+            this.startPointNode.getComponentInChildren(BallComponent).ball.speed *= this.pong(this.startPointNode.children[0]);
+            let distance = this.startPointNode.getComponentInChildren(BallComponent).ball.speed * game.deltaTime;
+            let x = distance * Math.cos(this._shootAngle);
+            let y = Math.abs(distance) * Math.sin(this._shootAngle);
+            this.startPointNode.children[0] && this.startPointNode.children[0].setWorldPosition(this.startPointNode.children[0].worldPosition.clone().add3f(x, y, 0));
 
-        //     this.checkIntersecting(this.startPointNode.children[0].getComponent(BallComponent).ball);
-        // }
+            this.checkIntersecting(this.startPointNode.children[0].getComponent(BallComponent).ball);
+        }
     }
 
     protected onTouchStart(event: EventTouch) {
@@ -376,19 +434,40 @@ export class PlayManager extends Base {
                 let pos = GameUtils.getPositionInTile(b.node, GameUtils.v2Fromv3(ball.node.worldPosition.clone()))
                 newNode.setWorldPosition(pos.x, pos.y, 0);
                 let indexColor = this.listColor.indexOf(ball.color);
-                newNode.getComponent(BallComponent).sprite.spriteFrame = this.listFrameBubble[indexColor];
-                if (b.color.equals(ball.color)) {
-                    // let l : BallComponent[] = []
-                    // this.neareastGreatThanOne(b, l);
-                    // console.log(l);
-                    this.removeBall(b);
-                }
+                this.setBubbleSpriteFrame(newNode.getComponent(BallComponent).sprite, this.listFrameBubble[indexColor]);
+                // newNode.getComponent(BallComponent).sprite.spriteFrame = this.listFrameBubble[indexColor];
+                // if (b.color.equals(ball.color)) {
+                //     // let l : BallComponent[] = []
+                //     // this.neareastGreatThanOne(b, l);
+                //     // console.log(l);
+                //     this.removeBall(b);
+                // }
+                this.removeCurrentBubbleShoot();
+
+                let list = this._findNearestBubble(newNode.getComponent(BallComponent).ball);
+                if (list.length <= 0) return;
+                if (list.length == 1 && this._findNearestBubble(list[0].ball).length <= 1) return;
+                list.forEach(listItem => {
+                    this.removeBall(listItem.ball);
+                })
                 // else {
 
                 // }
-                this.removeCurrentBubbleShoot();
             }
         })
+    }
+
+    private _findNearestBubble(ball: Ball): BallComponent[] {
+        let list = this.listBall.getComponentsInChildren(BallComponent).filter(bc => {
+            return GameUtils.getPosNear(
+                GameUtils.v2Fromv3(ball.node.worldPosition),
+                GameUtils.getRadius(ball.node)).find(p => GameUtils.isNear(
+                    p.position,
+                    GameUtils.v2Fromv3(bc.node.worldPosition.clone()),
+                    GameUtils.getRadius(ball.node) / 4))
+                && ball.color.equals(bc.ball.color);
+        });
+        return list;
     }
     neareastGreatThanOne(b: Ball, list: BallComponent[]) {
         let arr = this.listBall.getComponentsInChildren(BallComponent).filter(bc => {
@@ -408,17 +487,19 @@ export class PlayManager extends Base {
     }
     removeBall(b: Ball) {
         b.node.getComponent(BallComponent).remove((center, radius) => {
+
             let scoreNode = instantiate(this.scorePrefab);
             this.node.addChild(scoreNode);
             scoreNode.setWorldPosition(center.x, center.y, 0);
-            let list = this.listBall.getComponentsInChildren(BallComponent).filter(bc => {
-                return GameUtils.getPosNear(center, radius).find(p => p.position.equals(GameUtils.v2Fromv3(bc.node.worldPosition.clone())))
-                    && b.color.equals(bc.ball.color);
-            });
+            let list = this._findNearestBubble(b);
             list.forEach(bc => {
                 this.removeBall(bc.ball);
             });
         });
+
+    }
+
+    private _fall() {
 
     }
 }

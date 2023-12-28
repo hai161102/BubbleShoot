@@ -4,14 +4,13 @@
   "_objFlags": 0,
   "_native": "",
   "_effectAsset": {
-    "__uuid__": "c38588a0-9e49-4c76-8b39-b2edd272a6a9",
+    "__uuid__": "1d284fd6-f43a-44df-bc8a-1d1def90c4c9",
     "__expectedType__": "cc.EffectAsset"
   },
   "_techIdx": 0,
   "_defines": [
     {
-      "USE_TEXTURE": true,
-      "USE_VERTICAL": true
+      "USE_TEXTURE": true
     }
   ],
   "_states": [
@@ -27,20 +26,13 @@
   ],
   "_props": [
     {
-      "startColor": {
-        "__type__": "cc.Color",
-        "r": 255,
-        "g": 195,
-        "b": 195,
-        "a": 255
+      "alphaThreshold": 0.3,
+      "uSize": {
+        "__type__": "cc.Vec2",
+        "x": 900,
+        "y": 900
       },
-      "endColor": {
-        "__type__": "cc.Color",
-        "r": 170,
-        "g": 170,
-        "b": 170,
-        "a": 255
-      }
+      "uRadius": 0.3
     }
   ]
 }

@@ -75,6 +75,8 @@ export default class GameUtils {
     static getPositionInTile(bubble: Node, raycastPoint: Vec2) : Vec2 {
         let position = bubble.worldPosition.clone();
         let listPosNear = this.getPosNear(this.v2Fromv3(position), this.getRadius(bubble));
+        listPosNear.sort((t1, t2) => t1.position.y - t2.position.y);
+        listPosNear.splice(4, 2);
         listPosNear.sort((t1, t2) => {
             return Vec2.distance(t1.position, raycastPoint) - Vec2.distance(t2.position, raycastPoint);
         })
@@ -100,6 +102,10 @@ export default class GameUtils {
         }
 
         return {position: findPos, angle: findAngle};
+    }
+
+    static isNear(pointA : Vec2, pointB : Vec2, odd : number): boolean {
+        return Vec2.distance(pointA, pointB) <= odd;
     }
     static getPosNear(startPoint: Vec2, radius: number): {position: Vec2, dir: DIRECTION}[] {
         let list : {position: Vec2, dir: DIRECTION}[] = [];
