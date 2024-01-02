@@ -1,4 +1,4 @@
-import { _decorator, Collider2D, Component, Contact2DType, instantiate, IPhysics2DContact, Node, ParticleSystem2D, PhysicsGroup, PhysicsSystem2D, Prefab, RigidBody2D, Sprite, UITransform, v2, Vec2, Vec3 } from 'cc';
+import { _decorator, Collider2D, Component, Contact2DType, game, instantiate, IPhysics2DContact, Node, ParticleSystem2D, PhysicsGroup, PhysicsSystem2D, Prefab, RigidBody2D, Sprite, tween, TweenSystem, UITransform, v2, Vec2, Vec3 } from 'cc';
 import Ball from '../models/Ball';
 import { Base } from '../base/Base';
 import { ColliderListener } from '../models/interfaces/ColliderListener';
@@ -100,8 +100,9 @@ export class BallComponent extends Base {
         let radius = GameUtils.getRadius(this.node)
         this.scheduleOnce(() => {
             callback && callback(center, radius);
+            
             this.node.removeFromParent();
-
+            
         }, 0.1);
     }
 
@@ -109,5 +110,33 @@ export class BallComponent extends Base {
         console.log(this.node.getComponent(Collider2D).group, this.node.getComponent(RigidBody2D).group);
     }
     
+    falldown(parent: Node) : boolean {        
+        let list = this._findNearestBubble(this.ball, parent);
+        return list.length > 0 ? false : true;
+    }
+    falling(parent : Node, worldYToRemove: number) : void {
+        TweenSystem.instance.ActionManager.removeAllActionsFromTarget(this.node);
+        let newPos = this.node.worldPosition.clone();
+        newPos.y -= this.ball.speed;
+        let self = this;
+        tween(this.node).repeatForever(tween(this.node).to(1, {worldPosition: newPos}, {onUpdate(target, ratio) {
+            if(self.node.worldPosition.clone().y <= worldYToRemove) {
+                self.remove((arg1 : Vec2, arg2 : number) => {
+                    TweenSystem.instance.ActionManager.removeAllActionsFromTarget(this.node);
+                });
+            }
+        },})).start();
+    }
+    private _findNearestBubble(ball: Ball, parent: Node): BallComponent[] {
+        let list = parent.getComponentsInChildren(BallComponent).filter(bc => {
+            return GameUtils.getPosNear(
+                GameUtils.v2Fromv3(ball.node.worldPosition),
+                GameUtils.getRadius(ball.node)).find(p => GameUtils.isNear(
+                    p.position,
+                    GameUtils.v2Fromv3(bc.node.worldPosition.clone()),
+                    game.deltaTime));
+        });
+        return list;
+    }
 }
 

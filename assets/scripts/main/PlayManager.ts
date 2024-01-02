@@ -1,4 +1,4 @@
-import { _decorator, Asset, Canvas, Color, EffectAsset, EPhysics2DDrawFlags, EventTouch, game, Graphics, instantiate, Material, Node, PhysicsSystem2D, Prefab, Quat, resources, Sprite, SpriteFrame, Texture2D, tween, TweenSystem, UIOpacity, UITransform, v2, v3, Vec2, Vec3 } from 'cc';
+import { _decorator, Asset, Canvas, Color, EffectAsset, EPhysics2DDrawFlags, EventTouch, game, Graphics, instantiate, Material, Node, PhysicsSystem2D, Prefab, Quat, resources, ScrollView, Sprite, SpriteFrame, Texture2D, tween, TweenSystem, UIOpacity, UITransform, v2, v3, Vec2, Vec3 } from 'cc';
 import { Base } from '../base/Base';
 import { BallComponent } from '../models_components/BallComponent';
 import Ball from '../models/Ball';
@@ -15,6 +15,9 @@ export class PlayManager extends Base {
     startPointNode: Node;
     @property(Node)
     listBall: Node;
+
+    @property(ScrollView)
+    scrollView: ScrollView;
     @property([SpriteFrame])
     listFrameBubble: SpriteFrame[] = [];
     @property([Color])
@@ -58,7 +61,7 @@ export class PlayManager extends Base {
                 })
             }
             console.log(this.ballEffects);
-            this._maxCol = (this.canvas.node.getComponent(UITransform).contentSize.width / instantiate(this.bubblePrefab).getComponent(UITransform).width) - 1;
+            this._maxCol = Math.floor((this.canvas.node.getComponent(UITransform).contentSize.width / instantiate(this.bubblePrefab).getComponent(UITransform).width)) - 1;
             this.addShootBubble(this.startPointNode);
             this.loadArray();
         });
@@ -82,7 +85,7 @@ export class PlayManager extends Base {
                             let size = bubble.getComponent(UITransform).contentSize.clone();
                             let realSize = v2(size.width, size.height).multiply2f(i % 2 == 0 ? this._maxCol : this._maxCol - 1, this._maxRow);
                             let x = this.node.worldPosition.x + j * size.width + size.width / 2 - realSize.x / 2;
-                            let y = this.node.worldPosition.y + i * size.height * 0.75 - size.height / 2;
+                            let y = this.node.worldPosition.y + i * size.height * 0.75 + size.height;
                             bubble.setWorldPosition(v3(x, y, 0));
                         }
                         else {
@@ -427,11 +430,21 @@ export class PlayManager extends Base {
     checkIntersecting(ball: Ball) {
         this.listBall.getComponentsInChildren(BallComponent).forEach(bc => {
             let b = bc.ball;
-            if (b.intersect(ball, 0.05)) {
+            
+            if (b.intersect(ball, 0.01)) {
+                
                 let newNode = instantiate(this.bubblePrefab);
                 this.listBall.addChild(newNode);
                 newNode.getComponent(BallComponent).ball.color = ball.color;
-                let pos = GameUtils.getPositionInTile(b.node, GameUtils.v2Fromv3(ball.node.worldPosition.clone()))
+                let pos = GameUtils.getPositionInTile(b.node, GameUtils.v2Fromv3(ball.node.worldPosition.clone()));
+                if(pos.y < this.listBall.worldPosition.clone().y) {
+                    this.listBall.getComponentsInChildren(BallComponent).forEach(bcc => {
+                        let poss = bcc.node.worldPosition.clone();
+                        poss.y += GameUtils.getRadius(bcc.node) * 2;
+                        bcc.node.setWorldPosition(poss);
+                    })
+                    pos.y += GameUtils.getRadius(newNode) * 2;
+                }
                 newNode.setWorldPosition(pos.x, pos.y, 0);
                 let indexColor = this.listColor.indexOf(ball.color);
                 this.setBubbleSpriteFrame(newNode.getComponent(BallComponent).sprite, this.listFrameBubble[indexColor]);
@@ -442,6 +455,8 @@ export class PlayManager extends Base {
                 //     // console.log(l);
                 //     this.removeBall(b);
                 // }
+
+                
                 this.removeCurrentBubbleShoot();
 
                 let list = this._findNearestBubble(newNode.getComponent(BallComponent).ball);
@@ -487,7 +502,11 @@ export class PlayManager extends Base {
     }
     removeBall(b: Ball) {
         b.node.getComponent(BallComponent).remove((center, radius) => {
-
+            this.listBall.getComponentsInChildren(BallComponent).forEach(bc => {
+                if(bc.falldown(this.listBall)) {
+                    bc.falling(this.listBall, this.startPointNode.worldPosition.clone().y);
+                }
+            })
             let scoreNode = instantiate(this.scorePrefab);
             this.node.addChild(scoreNode);
             scoreNode.setWorldPosition(center.x, center.y, 0);
